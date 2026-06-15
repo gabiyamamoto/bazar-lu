@@ -41,21 +41,28 @@ export default function EditClothing() {
     }, []);
 
     async function carregarRoupa() {
-        const { data, error } = await supabase
-            .from("roupas")
-            .select("*")
-            .eq("id", id)
-            .single();
+        try {
+            const { data, error } = await supabase
+                .from("roupas")
+                .select("*")
+                .eq("id", id)
+                .single();
 
-        if (error) {
-            console.error(error);
+            if (error) {
+                console.error("Erro ao carregar:", error);
+                alert("Erro ao carregar peça");
+                navigate("/");
+                return;
+            }
+
+            setFormData(data);
+        } catch (error) {
+            console.error("Erro inesperado:", error);
             alert("Erro ao carregar peça");
             navigate("/");
-            return;
+        } finally {
+            setInitialLoading(false);
         }
-
-        setFormData(data);
-        setInitialLoading(false);
     }
 
     function handleChange(e) {
@@ -69,20 +76,42 @@ export default function EditClothing() {
         e.preventDefault();
         setLoading(true);
 
-        const { error } = await supabase
-            .from("roupas")
-            .update(formData)
-            .eq("id", id);
+        try {
+            // Prepara os dados para atualização (SEM updated_at)
+            const dadosAtualizados = {
+                tipo_peca: formData.tipo_peca,
+                titulo: formData.titulo,
+                marca: formData.marca || null,
+                material: formData.material || null,
+                tamanho: formData.tamanho,
+                estado: formData.estado,
+                preco: formData.preco ? parseFloat(formData.preco) : null,
+                descricao: formData.descricao || null,
+                imagem: formData.imagem || null,
+            };
 
-        if (error) {
-            console.error(error);
-            alert("Erro ao atualizar peça.");
+            console.log("Enviando dados:", dadosAtualizados);
+
+            const { error } = await supabase
+                .from("roupas")
+                .update(dadosAtualizados)
+                .eq("id", id);
+
+            if (error) {
+                console.error("Erro detalhado:", error);
+                alert(`Erro ao atualizar: ${error.message}`);
+                setLoading(false);
+                return;
+            }
+
+            alert("✅ Peça atualizada com sucesso!");
+            navigate(`/roupa/${id}`);
+        } catch (error) {
+            console.error("Erro inesperado:", error);
+            alert("Erro inesperado ao atualizar peça");
+        } finally {
             setLoading(false);
-            return;
         }
-
-        alert("✅ Peça atualizada com sucesso!");
-        navigate(`/roupa/${id}`);
     }
 
     if (initialLoading) {
@@ -134,7 +163,7 @@ export default function EditClothing() {
                                     </label>
                                     <select
                                         name="tipo_peca"
-                                        value={formData.tipo_peca}
+                                        value={formData.tipo_peca || ""}
                                         onChange={handleChange}
                                         required
                                         className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all"
@@ -154,7 +183,7 @@ export default function EditClothing() {
                                         type="text"
                                         name="titulo"
                                         placeholder="Título do anúncio"
-                                        value={formData.titulo}
+                                        value={formData.titulo || ""}
                                         onChange={handleChange}
                                         required
                                         className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all"
@@ -172,7 +201,7 @@ export default function EditClothing() {
                                         type="text"
                                         name="marca"
                                         placeholder="Marca da peça"
-                                        value={formData.marca}
+                                        value={formData.marca || ""}
                                         onChange={handleChange}
                                         className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all"
                                     />
@@ -184,7 +213,7 @@ export default function EditClothing() {
                                     </label>
                                     <select
                                         name="material"
-                                        value={formData.material}
+                                        value={formData.material || ""}
                                         onChange={handleChange}
                                         className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all"
                                     >
@@ -206,7 +235,7 @@ export default function EditClothing() {
                                         type="text"
                                         name="tamanho"
                                         placeholder="Ex: P, M, G, 38, 42"
-                                        value={formData.tamanho}
+                                        value={formData.tamanho || ""}
                                         onChange={handleChange}
                                         required
                                         className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all"
@@ -219,7 +248,7 @@ export default function EditClothing() {
                                     </label>
                                     <select
                                         name="estado"
-                                        value={formData.estado}
+                                        value={formData.estado || ""}
                                         onChange={handleChange}
                                         required
                                         className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all"
@@ -244,7 +273,7 @@ export default function EditClothing() {
                                         min="0"
                                         name="preco"
                                         placeholder="0,00"
-                                        value={formData.preco}
+                                        value={formData.preco || ""}
                                         onChange={handleChange}
                                         required
                                         className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all"
@@ -259,7 +288,7 @@ export default function EditClothing() {
                                         type="text"
                                         name="imagem"
                                         placeholder="https://exemplo.com/imagem.jpg"
-                                        value={formData.imagem}
+                                        value={formData.imagem || ""}
                                         onChange={handleChange}
                                         className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all"
                                     />
@@ -275,7 +304,7 @@ export default function EditClothing() {
                                     name="descricao"
                                     rows="5"
                                     placeholder="Descreva sua peça com detalhes..."
-                                    value={formData.descricao}
+                                    value={formData.descricao || ""}
                                     onChange={handleChange}
                                     className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all resize-none"
                                 />
